@@ -1,0 +1,16 @@
+services:
+  redis:
+    image: redis:7-alpine
+    command: ["redis-server", "--save", "", "--appendonly", "no"]
+
+  api:
+    build: .
+    depends_on:
+      - redis
+    env_file:
+      - .env
+    ports:
+      - "127.0.0.1:${API_PORT:-18080}:8000"
+    volumes:
+      - ./data:/data
+    restart: unless-stopped
