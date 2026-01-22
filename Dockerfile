@@ -1,4 +1,4 @@
-FROM python:3.11-slim
+FROM python:3.12-slim
 
 ENV PYTHONDONTWRITEBYTECODE=1 \
     PYTHONUNBUFFERED=1
@@ -11,7 +11,9 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     && rm -rf /var/lib/apt/lists/*
 
 COPY requirements.txt /app/requirements.txt
-RUN pip install --no-cache-dir -r /app/requirements.txt
+# Use uv for faster, deterministic installs; fall back on requirements.txt until a lockfile is added.
+RUN pip install --no-cache-dir uv \
+    && uv pip install --system --no-cache-dir -r /app/requirements.txt
 
 # Pre-install DuckDB httpfs extension during build (best-effort).
 # NOTE: avoid try/except in a python -c one-liner (requires newlines/indentation).
