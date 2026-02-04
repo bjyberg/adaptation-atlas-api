@@ -4,9 +4,9 @@ from typing import Any, Dict
 from fastapi import APIRouter
 
 from app.cache import get_cache_store
-from app.exposure_queries import query_exposure
-from app.exposure_models import ExposureQueryRequest
-from app.utils import cache_key, ttl
+from app.exposure.models import ExposureQueryRequest
+from app.exposure.queries import query_exposure
+from app.caching.keys import cache_key, ttl
 
 
 router = APIRouter()

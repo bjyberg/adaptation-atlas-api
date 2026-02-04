@@ -3,7 +3,11 @@ from typing import Any, Dict, List, Tuple
 
 from fastapi import HTTPException
 
-from app.haz_exposure_models import (
+from app.db.duckdb import duckdb_connect, rows
+from app.geo.filters import geo_where, geo_where_parent
+from app.common.geo import validate_geo
+from app.haz_exposure.filters import crop_where, haz_where, hazard_vars_where, scen_where
+from app.haz_exposure.models import (
     ByAdminRequest,
     DenomTotalRequest,
     HazardByCropRequest,
@@ -11,28 +15,15 @@ from app.haz_exposure_models import (
     TotalsByCropRequest,
     TotalsByHazardRequest,
 )
+from app.http.parquet import parquet_magic_check, validate_url
 from app.settings import S
-from app.utils import (
-    crop_where,
-    duckdb_connect,
-    geo_where,
-    geo_where_parent,
-    haz_where,
-    hazard_vars_where,
-    is_broad_geo,
-    norm_list,
-    parquet_magic_check,
-    rows,
-    scen_where,
-    sql_q,
-    normalize_geo,
-    validate_url,
-)
+from app.sql.clauses import normalize_list
+from app.sql.escape import quote_literal
 
 
 def _resolve_admin_group_fields(geo) -> Tuple[str, str]:
-    a1 = norm_list(geo.admin1)
-    a2 = norm_list(geo.admin2)
+    a1 = normalize_list(geo.admin1)
+    a2 = normalize_list(geo.admin2)
 
     if len(a2) > 0:
         return ("admin2_name", "TRUE")
@@ -43,8 +34,8 @@ def _resolve_admin_group_fields(geo) -> Tuple[str, str]:
 
 def _resolve_admin_group_fields_current(geo) -> Tuple[str, str]:
     """Return grouping field for *current* selected level (not children)."""
-    a1 = norm_list(geo.admin1)
-    a2 = norm_list(geo.admin2)
+    a1 = normalize_list(geo.admin1)
+    a2 = normalize_list(geo.admin2)
 
     if len(a2) > 0:
         return ("admin2_name", "admin2_name IS NOT NULL")
@@ -57,18 +48,13 @@ def query_totals_by_hazard(req: TotalsByHazardRequest) -> List[Dict[str, Any]]:
     validate_url(req.dataset_url)
     parquet_magic_check(req.dataset_url)
 
-    if is_broad_geo(req.geo) and not S.allow_broad_geo:
-        raise HTTPException(
-            status_code=400,
-            detail="Broad geo selection (admin0=all with no admin1/admin2) is disabled. Select a specific admin0/admin1/admin2 or set ALLOW_BROAD_GEO=true.",
-        )
-
-    geo_norm = normalize_geo(req.geo)
+    validate_geo(req.geo)
+    geo_norm = req.geo
     geo_where_expr = geo_where(geo_norm)
 
     q = f"""
       SELECT hazard, COALESCE(SUM(CASE WHEN CAST(value AS DOUBLE)=CAST(value AS DOUBLE) THEN CAST(value AS DOUBLE) ELSE NULL END), 0.0) AS total
-      FROM read_parquet({sql_q(req.dataset_url)})
+      FROM read_parquet({quote_literal(req.dataset_url)})
       WHERE {scen_where(req.scen)}
         AND {geo_where_expr}
         AND {crop_where(req.commodities)}
@@ -89,18 +75,13 @@ def query_totals_by_crop(req: TotalsByCropRequest) -> List[Dict[str, Any]]:
     validate_url(req.dataset_url)
     parquet_magic_check(req.dataset_url)
 
-    if is_broad_geo(req.geo) and not S.allow_broad_geo:
-        raise HTTPException(
-            status_code=400,
-            detail="Broad geo selection is disabled. Select a specific admin0/admin1/admin2 or set ALLOW_BROAD_GEO=true.",
-        )
-
-    geo_norm = normalize_geo(req.geo)
+    validate_geo(req.geo)
+    geo_norm = req.geo
     geo_where_expr = geo_where(geo_norm)
 
     q = f"""
       SELECT crop, COALESCE(SUM(CASE WHEN CAST(value AS DOUBLE)=CAST(value AS DOUBLE) THEN CAST(value AS DOUBLE) ELSE NULL END), 0.0) AS total
-      FROM read_parquet({sql_q(req.dataset_url)})
+      FROM read_parquet({quote_literal(req.dataset_url)})
       WHERE {scen_where(req.scen)}
         AND {geo_where_expr}
         AND {crop_where(req.commodities)}
@@ -122,18 +103,13 @@ def query_hazard_by_crop(req: HazardByCropRequest) -> List[Dict[str, Any]]:
     validate_url(req.dataset_url)
     parquet_magic_check(req.dataset_url)
 
-    if is_broad_geo(req.geo) and not S.allow_broad_geo:
-        raise HTTPException(
-            status_code=400,
-            detail="Broad geo selection (admin0=all with no admin1/admin2) is disabled. Select a specific admin0/admin1/admin2 or set ALLOW_BROAD_GEO=true.",
-        )
-
-    geo_norm = normalize_geo(req.geo)
+    validate_geo(req.geo)
+    geo_norm = req.geo
     geo_where_expr = geo_where(geo_norm)
 
     q = f"""
       SELECT hazard, crop, COALESCE(SUM(CASE WHEN CAST(value AS DOUBLE)=CAST(value AS DOUBLE) THEN CAST(value AS DOUBLE) ELSE NULL END), 0.0) AS total
-      FROM read_parquet({sql_q(req.dataset_url)})
+      FROM read_parquet({quote_literal(req.dataset_url)})
       WHERE {scen_where(req.scen)}
         AND {geo_where_expr}
         AND {crop_where(req.commodities)}
@@ -210,17 +186,6 @@ def query_by_admin(req: ByAdminRequest) -> List[Dict[str, Any]]:
     validate_url(req.dataset_url)
     parquet_magic_check(req.dataset_url)
 
-    if is_broad_geo(req.geo) and not S.allow_broad_geo:
-        raise HTTPException(
-            status_code=400,
-            detail="Broad geo selection is disabled. Select a specific admin0/admin1/admin2 or set ALLOW_BROAD_GEO=true.",
-        )
-    geo_norm = normalize_geo(req.geo)
-    group_field, non_null = (
-        _resolve_admin_group_fields(geo_norm) if req.group_child else _resolve_admin_group_fields_current(geo_norm)
-    )
-    geo_where_expr = geo_where_parent(geo_norm) if req.group_child else geo_where(geo_norm)
-
     q = f"""
   SELECT
     {group_field} AS admin,
@@ -233,7 +198,7 @@ def query_by_admin(req: ByAdminRequest) -> List[Dict[str, Any]]:
       ),
       0.0
     ) AS total
-  FROM read_parquet({sql_q(req.dataset_url)})
+  FROM read_parquet({quote_literal(req.dataset_url)})
   WHERE {scen_where(req.scen)}
     AND {geo_where_expr}
     AND {crop_where(req.commodities)}
@@ -255,24 +220,19 @@ def query_denom_total(req: DenomTotalRequest) -> Dict[str, Any]:
     validate_url(req.denom_url)
     parquet_magic_check(req.denom_url)
 
-    if is_broad_geo(req.geo) and not S.allow_broad_geo:
-        raise HTTPException(
-            status_code=400,
-            detail="Broad geo selection is disabled. Select a specific admin0/admin1/admin2 or set ALLOW_BROAD_GEO=true.",
-        )
-
-    geo_norm = normalize_geo(req.geo)
+    validate_geo(req.geo)
+    geo_norm = req.geo
 
     wheres = [
         geo_where(geo_norm),
         crop_where(req.commodities),
     ]
     if req.exposure_unit:
-        wheres.append(f"exposure_unit = {sql_q(req.exposure_unit)}")
+        wheres.append(f"exposure_unit = {quote_literal(req.exposure_unit)}")
 
     q = f"""
       SELECT COALESCE(SUM(CASE WHEN CAST(value AS DOUBLE)=CAST(value AS DOUBLE) THEN CAST(value AS DOUBLE) ELSE NULL END), 0.0) AS denom
-      FROM read_parquet({sql_q(req.denom_url)})
+      FROM read_parquet({quote_literal(req.denom_url)})
       WHERE {' AND '.join(wheres)}
     """
 
@@ -295,13 +255,8 @@ def query_records_page(req: RecordsRequest) -> Dict[str, Any]:
     validate_url(req.dataset_url)
     parquet_magic_check(req.dataset_url)
 
-    if is_broad_geo(req.geo) and not S.allow_broad_geo:
-        raise HTTPException(
-            status_code=400,
-            detail="Broad geo selection is disabled. Select a specific admin0/admin1/admin2 or set ALLOW_BROAD_GEO=true.",
-        )
-
-    geo_norm = normalize_geo(req.geo)
+    validate_geo(req.geo)
+    geo_norm = req.geo
 
     page = max(1, int(req.page))
     page_size = min(500, max(1, int(req.page_size)))
@@ -316,7 +271,7 @@ def query_records_page(req: RecordsRequest) -> Dict[str, Any]:
       SELECT admin0_name, admin1_name, admin2_name,
              scenario, timeframe, hazard, hazard_vars, crop,
              CASE WHEN CAST(value AS DOUBLE)=CAST(value AS DOUBLE) THEN CAST(value AS DOUBLE) ELSE NULL END AS value
-      FROM read_parquet({sql_q(req.dataset_url)})
+      FROM read_parquet({quote_literal(req.dataset_url)})
       WHERE {scen_where(req.scen)}
         AND {geo_where_expr}
         AND {crop_where(req.commodities)}
@@ -342,14 +297,15 @@ def export_records_csv(req: RecordsRequest) -> str:
     limit_rows = min(S.export_max_rows, max(1, int(req.page_size)))
     order = "value DESC" if req.sort == "value_desc" else "value ASC"
 
-    geo_norm = normalize_geo(req.geo)
+    validate_geo(req.geo)
+    geo_norm = req.geo
     geo_where_expr = geo_where(geo_norm)
 
     q = f"""
       SELECT admin0_name, admin1_name, admin2_name,
              scenario, timeframe, hazard, hazard_vars, crop,
              CASE WHEN CAST(value AS DOUBLE)=CAST(value AS DOUBLE) THEN CAST(value AS DOUBLE) ELSE NULL END AS value
-      FROM read_parquet({sql_q(req.dataset_url)})
+      FROM read_parquet({quote_literal(req.dataset_url)})
       WHERE {scen_where(req.scen)}
         AND {geo_where_expr}
         AND {crop_where(req.commodities)}
@@ -364,7 +320,7 @@ def export_records_csv(req: RecordsRequest) -> str:
         tmp_path = tmp.name
         tmp.close()
         # Use a double-quote character as the CSV quote char.
-        con.execute(f"COPY ({q}) TO {sql_q(tmp_path)} (HEADER TRUE, DELIMITER ',', QUOTE '\"')")
+        con.execute(f"COPY ({q}) TO {quote_literal(tmp_path)} (HEADER TRUE, DELIMITER ',', QUOTE '\"')")
         return tmp_path
     finally:
         con.close()

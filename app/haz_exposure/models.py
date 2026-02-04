@@ -2,7 +2,8 @@ from typing import List, Optional
 
 from pydantic import BaseModel, Field
 
-from app.common_models import GeoFilter, ScenarioPick
+from app.common.geo import GeoFilter
+from app.common.scenario import ScenarioPick
 
 
 class BaseQuery(BaseModel):

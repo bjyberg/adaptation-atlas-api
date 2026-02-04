@@ -3,8 +3,8 @@ from typing import Any, Dict, List, Optional, Tuple
 
 from redis.asyncio import Redis
 
+from app.db.duckdb import duckdb_connect
 from app.settings import S
-from app.utils import duckdb_connect
 
 
 class CacheStore:
@@ -110,7 +110,9 @@ class CacheStore:
         finally:
             con.close()
 
-    async def clear_prefixes(self, prefixes: List[str], *, dry_run: bool = False, batch_size: int = 1000) -> Dict[str, Any]:
+    async def clear_prefixes(
+        self, prefixes: List[str], *, dry_run: bool = False, batch_size: int = 1000
+    ) -> Dict[str, Any]:
         """Delete cached responses for one or more key prefixes (e.g., 'by_admin', 'q1')."""
         deleted_total = 0
         patterns = [f"{p}:*" for p in prefixes if p]
@@ -137,17 +139,6 @@ class CacheStore:
                     break
 
         return {"deleted": deleted_total, "by_prefix": details, "dry_run": dry_run}
-
-
-HZ_CACHE_PREFIXES: List[str] = [
-    "totals_by_hazard",
-    "totals_by_crop",
-    "hazard_by_crop",
-    "by_admin",
-    "q1",
-    "records",
-    "denom_total",
-]
 
 
 redis_client: Optional[Redis] = None

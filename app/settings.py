@@ -23,8 +23,9 @@ class Settings:
 
     parquet_magic_check: bool
     export_max_rows: int
-    admin_lookup_path: str
-    admin_lookup_enable: bool
+    max_rows: int
+    dataset_registry_path: str
+    dataset_base_dir: str
 
     @classmethod
     def from_env(cls) -> "Settings":
@@ -43,7 +44,9 @@ class Settings:
         allow_any_url = _bool("ALLOW_ANY_URL", "false")
         allowed_parquet_hosts = [
             h.strip().lower()
-            for h in os.getenv("ALLOWED_PARQUET_HOSTS", "digital-atlas.s3.amazonaws.com").split(",")
+            for h in os.getenv(
+                "ALLOWED_PARQUET_HOSTS", "digital-atlas.s3.amazonaws.com"
+            ).split(",")
             if h.strip()
         ]
 
@@ -57,14 +60,20 @@ class Settings:
         ]
 
         # Optional: allow origin regex (useful for Quarto preview random ports in dev)
-        cors_origin_regex = os.getenv("CORS_ORIGIN_REGEX", "").strip() or r"^https?://(localhost|127\.0\.0\.1)(:\\d+)?$"
+        cors_origin_regex = (
+            os.getenv("CORS_ORIGIN_REGEX", "").strip()
+            or r"^https?://(localhost|127\.0\.0\.1)(:\\d+)?$"
+        )
 
         allow_broad_geo = _bool("ALLOW_BROAD_GEO", "false")
 
         parquet_magic_check = _bool("PARQUET_MAGIC_CHECK", "true")
         export_max_rows = int(os.getenv("EXPORT_MAX_ROWS", "200000"))
-        admin_lookup_path = os.getenv("ADMIN_LOOKUP_PATH", "/data/admin_lookup.parquet")
-        admin_lookup_enable = _bool("ADMIN_LOOKUP_ENABLE", "true")
+        max_rows = int(os.getenv("MAX_ROWS", "200000"))
+        dataset_registry_path = os.getenv(
+            "DATASET_REGISTRY_PATH", "app/data/datasets.json"
+        )
+        dataset_base_dir = os.getenv("DATASET_BASE_DIR", "").strip()
 
         return cls(
             redis_url=redis_url,
@@ -82,8 +91,9 @@ class Settings:
             allow_broad_geo=allow_broad_geo,
             parquet_magic_check=parquet_magic_check,
             export_max_rows=export_max_rows,
-            admin_lookup_path=admin_lookup_path,
-            admin_lookup_enable=admin_lookup_enable,
+            max_rows=max_rows,
+            dataset_registry_path=dataset_registry_path,
+            dataset_base_dir=dataset_base_dir,
         )
 
 

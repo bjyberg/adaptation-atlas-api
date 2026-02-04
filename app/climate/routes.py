@@ -4,9 +4,9 @@ from typing import Any, Dict
 from fastapi import APIRouter
 
 from app.cache import get_cache_store
-from app.climate_queries import query_climate
-from app.climate_models import ClimateQueryRequest
-from app.utils import cache_key, ttl
+from app.climate.models import ClimateQueryRequest
+from app.climate.queries import query_climate
+from app.caching.keys import cache_key, ttl
 
 
 router = APIRouter()

@@ -3,11 +3,13 @@ from typing import Any, Dict
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from app.cache import init_cache, close_cache
-from app.climate_routes import router as climate_router
-from app.exposure_routes import router as exposure_router
-from app.haz_exposure_routes import router as haz_exposure_router
+from app.climate.routes import router as climate_router
+from app.db.registry import register_dataset_views
+from app.exposure.routes import router as exposure_router
+from app.hazard_exposure.routes import router as hazard_exposure_router
+from app.haz_exposure.routes import router as haz_exposure_router
+from app.db.duckdb import duckdb_connect
 from app.settings import S
-from app.utils import duckdb_connect
 
 
 print("CORS config:", {"cors_origins": S.cors_origins, "cors_origin_regex": S.cors_origin_regex})
@@ -33,6 +35,7 @@ app.add_middleware(
 )
 
 app.include_router(haz_exposure_router)
+app.include_router(hazard_exposure_router)
 app.include_router(exposure_router)
 app.include_router(climate_router)
 
@@ -44,6 +47,9 @@ async def startup() -> None:
     # Warm up DuckDB + httpfs
     con = duckdb_connect(for_http_parquet=True)
     con.close()
+
+    # Register dataset views for domain datasets
+    register_dataset_views(["climate", "exposure", "hazExposure"], allow_missing=True)
 
 
 @app.on_event("shutdown")

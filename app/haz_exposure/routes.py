@@ -4,8 +4,9 @@ from typing import Any, Dict, List, Optional
 from fastapi import APIRouter, BackgroundTasks, Depends, Header, HTTPException, Request
 from fastapi.responses import FileResponse
 
-from app.cache import HZ_CACHE_PREFIXES, get_cache_store
-from app.haz_exposure_models import (
+from app.cache import get_cache_store
+from app.haz_exposure.cache import HZ_CACHE_PREFIXES
+from app.haz_exposure.models import (
     ByAdminRequest,
     CacheClearRequest,
     DenomTotalRequest,
@@ -15,7 +16,7 @@ from app.haz_exposure_models import (
     TotalsByCropRequest,
     TotalsByHazardRequest,
 )
-from app.haz_exposure_queries import (
+from app.haz_exposure.queries import (
     export_records_csv,
     query_by_admin,
     query_denom_total,
@@ -24,8 +25,9 @@ from app.haz_exposure_queries import (
     query_totals_by_crop,
     query_totals_by_hazard,
 )
+from app.caching.keys import cache_key, ttl
+from app.files import cleanup_file
 from app.settings import S
-from app.utils import cache_key, cleanup_file, ttl
 
 
 router = APIRouter()
