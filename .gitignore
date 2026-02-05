@@ -19,6 +19,7 @@ venv/
 
 # Local data / cache
 data/
+!app/data/
 *.duckdb
 *.sqlite3
 
