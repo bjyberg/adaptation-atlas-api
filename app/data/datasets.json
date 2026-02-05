@@ -13,7 +13,7 @@
   "hazExposure": {
     "datasets": [
       {
-        "key": "deltaMethod",
+        "key": "deltaMethod_usd2015",
         "path": [
           "s3://digital-atlas/domain=hazard_exposure/source=atlas_cmip6/region=ssa/processing=hazard-risk-exposure/variable=vop_usd15/period=annual/model=historic/severity=moderate/interaction.parquet",
           "s3://digital-atlas/domain=hazard_exposure/source=atlas_cmip6/region=ssa/processing=hazard-risk-exposure/variable=vop_usd15/period=jagermeyr/model=historic/severity=moderate/interaction.parquet",
@@ -34,7 +34,6 @@
           "s3://digital-atlas/domain=hazard_exposure/source=atlas_cmip6/region=ssa/processing=hazard-risk-exposure/variable=vop_intld15/period=annual/model=historic/severity=severe/interaction.parquet",
           "s3://digital-atlas/domain=hazard_exposure/source=atlas_cmip6/region=ssa/processing=hazard-risk-exposure/variable=vop_intld15/period=jagermeyr/model=historic/severity=severe/interaction.parquet",
           "s3://digital-atlas/domain=hazard_exposure/source=atlas_cmip6/region=ssa/processing=hazard-risk-exposure/variable=vop_intld15/period=annual/model=ENSEMBLE/severity=severe/interaction.parquet",
-          "s3://digital-atlas/domain=hazard_exposure/source=atlas_cmip6/region=ssa/processing=hazard-risk-exposure/variable=vop_intld15/period=jagermeyr/model=ENSEMBLE/severity=severe/interaction.parquet",
           "s3://digital-atlas/domain=hazard_exposure/source=atlas_cmip6/region=ssa/processing=hazard-risk-exposure/variable=vop_intld15/period=annual/model=historic/severity=extreme/interaction.parquet",
           "s3://digital-atlas/domain=hazard_exposure/source=atlas_cmip6/region=ssa/processing=hazard-risk-exposure/variable=vop_intld15/period=jagermeyr/model=historic/severity=extreme/interaction.parquet",
           "s3://digital-atlas/domain=hazard_exposure/source=atlas_cmip6/region=ssa/processing=hazard-risk-exposure/variable=vop_intld15/period=annual/model=ENSEMBLE/severity=extreme/interaction.parquet",
