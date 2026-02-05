@@ -29,3 +29,12 @@ def where_in_lower(column: str, values: List[Any]) -> str:
     clean_vals = [v.strip().lower() for v in vals]
     quoted_vals = [f"'{v}'" for v in clean_vals]
     return f"LOWER({column}) IN ({', '.join(quoted_vals)})"
+
+
+def where_in_exact(column: str, values: List[Any]) -> str:
+    """Build a case-sensitive IN clause for string values."""
+    vals = normalize_list(coerce_values(values))
+    if not vals:
+        return ""
+    quoted_vals = [f"'{v}'" for v in vals]
+    return f"{column} IN ({', '.join(quoted_vals)})"

@@ -26,9 +26,11 @@ def geo_where(geo: GeoFilter) -> str:
         )
 
     filters: List[str] = []
-    if len(a0) > 0:
+    if len(a0) > 0 and len(iso3) > 0:
+        filters.append(f"({where_in_lower('admin0_name', a0)} OR {where_in_lower('iso3', iso3)})")
+    elif len(a0) > 0:
         filters.append(where_in_lower("admin0_name", a0))
-    if len(iso3) > 0:
+    elif len(iso3) > 0:
         filters.append(where_in_lower("iso3", iso3))
 
     if len(a2) > 0:
@@ -46,7 +48,8 @@ def geo_where(geo: GeoFilter) -> str:
         filters.append("admin1_name IS NOT NULL")
         filters.append("admin2_name IS NULL")
     else:
-        filters.append("FALSE")
+        filters.append("admin1_name IS NULL")
+        filters.append("admin2_name IS NULL")
 
     return " AND ".join(filters) if filters else "TRUE"
 
@@ -74,9 +77,11 @@ def geo_where_parent(geo: GeoFilter) -> str:
         )
 
     filters: List[str] = []
-    if len(a0) > 0:
+    if len(a0) > 0 and len(iso3) > 0:
+        filters.append(f"({where_in_lower('admin0_name', a0)} OR {where_in_lower('iso3', iso3)})")
+    elif len(a0) > 0:
         filters.append(where_in_lower("admin0_name", a0))
-    if len(iso3) > 0:
+    elif len(iso3) > 0:
         filters.append(where_in_lower("iso3", iso3))
     if len(a1) > 0:
         filters.append(where_in_lower("admin1_name", a1))
@@ -87,6 +92,7 @@ def geo_where_parent(geo: GeoFilter) -> str:
     elif admin2_all:
         filters.append("admin2_name IS NOT NULL")
     if not filters:
-        filters.append("FALSE")
+        filters.append("admin1_name IS NULL")
+        filters.append("admin2_name IS NULL")
 
     return " AND ".join(filters) if filters else "TRUE"

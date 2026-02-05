@@ -171,10 +171,10 @@ def register_dataset_views(domains: Iterable[str], *, allow_missing: bool = Fals
         for d in iter_domain_datasets(domains, allow_missing=allow_missing):
             if d.hive_partitioning:
                 if len(d.paths) == 1:
-                    source = f"read_parquet({quote_literal(d.paths[0])}, hive_partitioning=1)"
+                    source = f"read_parquet({quote_literal(d.paths[0])}, hive_partitioning=1, union_by_name=1)"
                 else:
                     path_list = ", ".join(quote_literal(p) for p in d.paths)
-                    source = f"read_parquet([{path_list}], hive_partitioning=1)"
+                    source = f"read_parquet([{path_list}], hive_partitioning=1, union_by_name=1)"
             else:
                 source = f"read_parquet({quote_literal(d.paths[0])})"
             con.execute(f"CREATE OR REPLACE VIEW {quote_ident(d.key)} AS SELECT * FROM {source}")
